@@ -1,0 +1,607 @@
+--[[
+    FINALMY 1.0
+    Uso: experiência própria no Roblox
+    LocalScript em StarterPlayerScripts
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local Config = {
+    ESP = false,
+    Names = true,
+    Distance = true,
+    Health = true,
+    Boxes = true,
+
+    Aimbot = false,
+    AimPart = "Head",
+    AimFOV = 120,
+    AimSmoothness = 0.15,
+    MaxDistance = 1000,
+
+    Fullbright = false,
+    FOV = 70,
+}
+
+local RED = Color3.fromRGB(235, 45, 55)
+local DARK = Color3.fromRGB(13, 13, 16)
+local PANEL = Color3.fromRGB(21, 21, 26)
+local WHITE = Color3.fromRGB(240, 240, 245)
+
+local Connections = {}
+local Highlights = {}
+local Drawings = {}
+
+local function Track(connection)
+    table.insert(Connections, connection)
+    return connection
+end
+
+local function Create(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props or {}) do
+        obj[k] = v
+    end
+    obj.Parent = parent
+    return obj
+end
+
+-- GUI
+local GUI = Create("ScreenGui", {
+    Name = "FINALMY",
+    ResetOnSpawn = false,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+}, Player:WaitForChild("PlayerGui"))
+
+-- LOADING
+local Loading = Create("Frame", {
+    Size = UDim2.fromScale(1, 1),
+    BackgroundColor3 = DARK,
+    BorderSizePixel = 0
+}, GUI)
+
+local Logo = Create("TextLabel", {
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.43),
+    Size = UDim2.fromOffset(400, 75),
+    BackgroundTransparency = 1,
+    Text = "FINALMY",
+    TextColor3 = RED,
+    Font = Enum.Font.GothamBlack,
+    TextSize = 48
+}, Loading)
+
+local LoadingText = Create("TextLabel", {
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.53),
+    Size = UDim2.fromOffset(300, 25),
+    BackgroundTransparency = 1,
+    Text = "Inicializando módulos...",
+    TextColor3 = WHITE,
+    Font = Enum.Font.Gotham,
+    TextSize = 13
+}, Loading)
+
+local BarBG = Create("Frame", {
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.59),
+    Size = UDim2.fromOffset(300, 5),
+    BackgroundColor3 = PANEL,
+    BorderSizePixel = 0
+}, Loading)
+
+Create("UICorner", {CornerRadius = UDim.new(1, 0)}, BarBG)
+
+local Bar = Create("Frame", {
+    Size = UDim2.fromScale(0, 1),
+    BackgroundColor3 = RED,
+    BorderSizePixel = 0
+}, BarBG)
+
+Create("UICorner", {CornerRadius = UDim.new(1, 0)}, Bar)
+
+for i = 1, 100 do
+    Bar.Size = UDim2.fromScale(i / 100, 1)
+    LoadingText.Text = "Carregando FINALMY... " .. i .. "%"
+    task.wait(0.012)
+end
+
+-- MAIN WINDOW
+local Window = Create("Frame", {
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(760, 490),
+    BackgroundColor3 = DARK,
+    BorderSizePixel = 0,
+    Visible = false
+}, GUI)
+
+Create("UICorner", {CornerRadius = UDim.new(0, 12)}, Window)
+Create("UIStroke", {Color = Color3.fromRGB(55, 55, 65), Thickness = 1}, Window)
+
+local Top = Create("Frame", {
+    Size = UDim2.new(1, 0, 0, 55),
+    BackgroundColor3 = PANEL,
+    BorderSizePixel = 0
+}, Window)
+
+Create("UICorner", {CornerRadius = UDim.new(0, 12)}, Top)
+
+Create("TextLabel", {
+    Position = UDim2.fromOffset(18, 0),
+    Size = UDim2.fromOffset(220, 55),
+    BackgroundTransparency = 1,
+    Text = "FINALMY",
+    TextColor3 = RED,
+    Font = Enum.Font.GothamBlack,
+    TextSize = 23,
+    TextXAlignment = Enum.TextXAlignment.Left
+}, Top)
+
+local Close = Create("TextButton", {
+    AnchorPoint = Vector2.new(1, 0.5),
+    Position = UDim2.new(1, -15, 0.5, 0),
+    Size = UDim2.fromOffset(32, 32),
+    BackgroundColor3 = Color3.fromRGB(65, 25, 30),
+    Text = "X",
+    TextColor3 = WHITE,
+    Font = Enum.Font.GothamBold,
+    TextSize = 14
+}, Top)
+
+Create("UICorner", {CornerRadius = UDim.new(0, 7)}, Close)
+
+local Sidebar = Create("Frame", {
+    Position = UDim2.fromOffset(0, 55),
+    Size = UDim2.new(0, 175, 1, -55),
+    BackgroundColor3 = PANEL,
+    BorderSizePixel = 0
+}, Window)
+
+local Content = Create("ScrollingFrame", {
+    Position = UDim2.fromOffset(190, 70),
+    Size = UDim2.new(1, -205, 1, -85),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 3,
+    ScrollBarImageColor3 = RED,
+    CanvasSize = UDim2.fromOffset(0, 0),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y
+}, Window)
+
+Create("UIListLayout", {
+    Padding = UDim.new(0, 8),
+    SortOrder = Enum.SortOrder.LayoutOrder
+}, Content)
+
+local Pages = {}
+local CurrentPage
+
+local function NewPage(name)
+    local page = Create("Frame", {
+        Name = name,
+        Size = UDim2.new(1, -8, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Visible = false
+    }, Content)
+
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 9),
+        SortOrder = Enum.SortOrder.LayoutOrder
+    }, page)
+
+    Pages[name] = page
+    return page
+end
+
+local function SwitchPage(name)
+    for pageName, page in pairs(Pages) do
+        page.Visible = pageName == name
+    end
+    CurrentPage = name
+end
+
+local function AddTab(name)
+    local button = Create("TextButton", {
+        Size = UDim2.new(1, -18, 0, 38),
+        Position = UDim2.fromOffset(9, 0),
+        BackgroundColor3 = PANEL,
+        Text = "   " .. name,
+        TextColor3 = WHITE,
+        TextSize = 12,
+        Font = Enum.Font.GothamSemibold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        AutoButtonColor = true
+    }, Sidebar)
+
+    Create("UICorner", {CornerRadius = UDim.new(0, 7)}, button)
+
+    button.MouseButton1Click:Connect(function()
+        SwitchPage(name)
+    end)
+end
+
+local function Section(parent, title)
+    return Create("TextLabel", {
+        Size = UDim2.new(1, -8, 0, 30),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = RED,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, parent)
+end
+
+local function Toggle(parent, label, key)
+    local button = Create("TextButton", {
+        Size = UDim2.new(1, -8, 0, 42),
+        BackgroundColor3 = PANEL,
+        Text = "",
+        AutoButtonColor = false
+    }, parent)
+
+    Create("UICorner", {CornerRadius = UDim.new(0, 8)}, button)
+
+    local textLabel = Create("TextLabel", {
+        Position = UDim2.fromOffset(13, 0),
+        Size = UDim2.new(1, -75, 1, 0),
+        BackgroundTransparency = 1,
+        Text = label,
+        TextColor3 = WHITE,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, button)
+
+    local indicator = Create("Frame", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -13, 0.5, 0),
+        Size = UDim2.fromOffset(35, 18),
+        BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+    }, button)
+
+    Create("UICorner", {CornerRadius = UDim.new(1, 0)}, indicator)
+
+    local function Refresh()
+        local enabled = Config[key]
+        indicator.BackgroundColor3 = enabled and RED or Color3.fromRGB(55, 55, 60)
+    end
+
+    button.MouseButton1Click:Connect(function()
+        Config[key] = not Config[key]
+        Refresh()
+    end)
+
+    Refresh()
+    return button
+end
+
+local function Slider(parent, label, key, min, max)
+    local holder = Create("Frame", {
+        Size = UDim2.new(1, -8, 0, 58),
+        BackgroundColor3 = PANEL
+    }, parent)
+
+    Create("UICorner", {CornerRadius = UDim.new(0, 8)}, holder)
+
+    local valueLabel = Create("TextLabel", {
+        Position = UDim2.fromOffset(12, 5),
+        Size = UDim2.new(1, -24, 0, 22),
+        BackgroundTransparency = 1,
+        TextColor3 = WHITE,
+        Font = Enum.Font.Gotham,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left
+    }, holder)
+
+    local track = Create("Frame", {
+        Position = UDim2.fromOffset(12, 36),
+        Size = UDim2.new(1, -24, 0, 5),
+        BackgroundColor3 = Color3.fromRGB(55, 55, 60)
+    }, holder)
+
+    local fill = Create("Frame", {
+        Size = UDim2.fromScale(0, 1),
+        BackgroundColor3 = RED
+    }, track)
+
+    local dragging = false
+
+    local function SetValue(x)
+        local alpha = math.clamp(
+            (x - track.AbsolutePosition.X) / track.AbsoluteSize.X,
+            0, 1
+        )
+        Config[key] = math.floor(min + (max - min) * alpha)
+        fill.Size = UDim2.fromScale(alpha, 1)
+        valueLabel.Text = label .. ": " .. Config[key]
+    end
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            SetValue(input.Position.X)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            SetValue(input.Position.X)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    SetValue(track.AbsolutePosition.X + track.AbsoluteSize.X *
+        ((Config[key] - min) / (max - min)))
+
+    return holder
+end
+
+-- PÁGINAS
+local tabNames = {
+    "AIMBOT", "SILENT AIM", "TRIGGER & RAGE",
+    "GUN MODS", "VISUAIS", "WORLD",
+    "SKINS", "GUN SKINS", "MISC", "SETTINGS"
+}
+
+for _, name in ipairs(tabNames) do
+    AddTab(name)
+    NewPage(name)
+end
+
+-- AIMBOT: NPCs de treinamento
+local aimPage = Pages["AIMBOT"]
+Section(aimPage, "AIMBOT DE TREINAMENTO")
+Toggle(aimPage, "Ativar mira em NPCs", "Aimbot")
+Slider(aimPage, "Campo de visão", "AimFOV", 20, 500)
+Slider(aimPage, "Suavidade", "AimSmoothness", 0, 1)
+Slider(aimPage, "Distância máxima", "MaxDistance", 50, 2000)
+
+-- VISUAIS
+local visualPage = Pages["VISUAIS"]
+Section(visualPage, "NPC ESP")
+Toggle(visualPage, "Ativar ESP", "ESP")
+Toggle(visualPage, "Mostrar nomes", "Names")
+Toggle(visualPage, "Mostrar distância", "Distance")
+Toggle(visualPage, "Mostrar vida", "Health")
+Toggle(visualPage, "Mostrar caixas", "Boxes")
+
+-- WORLD
+local worldPage = Pages["WORLD"]
+Section(worldPage, "AMBIENTE")
+Toggle(worldPage, "Fullbright", "Fullbright")
+Slider(worldPage, "FOV da câmera", "FOV", 50, 120)
+
+-- SETTINGS
+local settingsPage = Pages["SETTINGS"]
+Section(settingsPage, "CONFIGURAÇÕES")
+local reset = Create("TextButton", {
+    Size = UDim2.new(1, -8, 0, 42),
+    BackgroundColor3 = PANEL,
+    Text = "Restaurar configurações",
+    TextColor3 = WHITE,
+    Font = Enum.Font.Gotham,
+    TextSize = 12
+}, settingsPage)
+
+Create("UICorner", {CornerRadius = UDim.new(0, 8)}, reset)
+
+reset.MouseButton1Click:Connect(function()
+    Config.ESP = false
+    Config.Aimbot = false
+    Config.Fullbright = false
+    Config.Names = true
+    Config.Distance = true
+    Config.Health = true
+    Config.Boxes = true
+    Config.AimFOV = 120
+    Config.AimSmoothness = 0.15
+    Config.MaxDistance = 1000
+    Config.FOV = 70
+end)
+
+-- NPCs: coloque modelos de treino em workspace.TrainingNPCs
+local NPCFolder = workspace:FindFirstChild("TrainingNPCs")
+
+local function IsValidNPC(model)
+    if not model:IsA("Model") then return false end
+    if Players:GetPlayerFromCharacter(model) then return false end
+
+    local humanoid = model:FindFirstChildOfClass("Humanoid")
+    local root = model:FindFirstChild("HumanoidRootPart")
+
+    return humanoid and humanoid.Health > 0 and root
+end
+
+local function GetNPCs()
+    local folder = workspace:FindFirstChild("TrainingNPCs")
+    if not folder then return {} end
+
+    local result = {}
+    for _, model in ipairs(folder:GetChildren()) do
+        if IsValidNPC(model) then
+            table.insert(result, model)
+        end
+    end
+    return result
+end
+
+-- ESP centralizado
+local function UpdateESP()
+    local current = GetNPCs()
+    local seen = {}
+
+    for _, npc in ipairs(current) do
+        seen[npc] = true
+
+        if Config.ESP then
+            local highlight = Highlights[npc]
+
+            if not highlight then
+                highlight = Instance.new("Highlight")
+                highlight.FillColor = RED
+                highlight.OutlineColor = WHITE
+                highlight.FillTransparency = 0.65
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Parent = npc
+                Highlights[npc] = highlight
+            end
+
+            highlight.Enabled = true
+        elseif Highlights[npc] then
+            Highlights[npc].Enabled = false
+        end
+    end
+
+    for npc, highlight in pairs(Highlights) do
+        if not seen[npc] or not npc.Parent then
+            highlight:Destroy()
+            Highlights[npc] = nil
+        end
+    end
+end
+
+-- Aimbot de treino: seleciona NPC mais próximo do centro da tela
+local function GetBestTarget()
+    local bestPart
+    local bestDistance = Config.AimFOV
+
+    for _, npc in ipairs(GetNPCs()) do
+        local part = npc:FindFirstChild(Config.AimPart)
+            or npc:FindFirstChild("Head")
+            or npc:FindFirstChild("HumanoidRootPart")
+
+        if part then
+            local worldDistance = (part.Position - Camera.CFrame.Position).Magnitude
+
+            if worldDistance <= Config.MaxDistance then
+                local screenPos, visible = Camera:WorldToViewportPoint(part.Position)
+
+                if visible then
+                    local center = Camera.ViewportSize / 2
+                    local screenDistance = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+
+                    if screenDistance < bestDistance then
+                        bestDistance = screenDistance
+                        bestPart = part
+                    end
+                end
+            end
+        end
+    end
+
+    return bestPart
+end
+
+local elapsed = 0
+
+Track(RunService.RenderStepped:Connect(function(dt)
+    elapsed += dt
+
+    if elapsed >= 0.08 then
+        elapsed = 0
+        UpdateESP()
+    end
+
+    Camera.FieldOfView = Config.FOV
+
+    if Config.Fullbright then
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = false
+    end
+
+    if Config.Aimbot and UserInputService:IsMouseButtonPressed(
+        Enum.UserInputType.MouseButton2
+    ) then
+        local target = GetBestTarget()
+
+        if target then
+            local goal = CFrame.lookAt(
+                Camera.CFrame.Position,
+                target.Position
+            )
+
+            Camera.CFrame = Camera.CFrame:Lerp(
+                goal,
+                math.clamp(Config.AimSmoothness, 0.01, 1)
+            )
+        end
+    end
+end))
+
+-- ARRASTAR PAINEL
+local dragging = false
+local dragStart
+local startPosition
+
+Top.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPosition = Window.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        Window.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+local function ToggleWindow()
+    Window.Visible = not Window.Visible
+end
+
+Close.MouseButton1Click:Connect(ToggleWindow)
+
+Track(UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        ToggleWindow()
+    end
+end))
+
+-- FINALIZAÇÃO
+SwitchPage("AIMBOT")
+task.wait(0.2)
+
+Window.Visible = true
+Window.Size = UDim2.fromOffset(0, 0)
+
+TweenService:Create(
+    Window,
+    TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    {Size = UDim2.fromOffset(760, 490)}
+):Play()
+
+Loading:Destroy()
+
+print("[FINALMY] Inicializado.")
